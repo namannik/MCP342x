@@ -113,11 +113,12 @@ MCP342x::error_t MCP342x::convert(const Config &config) const
     return errorNone;
 }
 
-MCP342x::error_t MCP342x::read(long &result, Config& status) const
+MCP342x::error_t MCP342x::read(double &voltage, Config& status) const
 {
   // Read 4 bytes, the 4th byte will configuration. From that deduce
   // if 18 bit conversion. If not use the 3rd byte, as that is the
   // most appropriate configuration value (ready may have changed).
+  long result;
   const uint8_t len = 4;
   uint8_t buffer[len] = {};
   Wire.requestFrom(address, len);
@@ -142,22 +143,27 @@ MCP342x::error_t MCP342x::read(long &result, Config& status) const
 
   long signBit = 0;    // Location of sign bit
   long signExtend = 0; // Bits to be set if sign is set
+  double LSB = 0;      // Voltage of least significant bit
   switch (int(status.getResolution())) {
   case 12:
     signBit = 0x800;
     signExtend = 0xFFFFF000;
+    LSB = 1e-3; // 1 mV
     break;
   case 14:
     signBit = 0x2000;
     signExtend = 0xFFFFC000;
+    LSB = 250e-6; // 250µV
     break;
   case 16:
     signBit = 0x8000;
     signExtend = 0xFFFF0000;
+    LSB = 62.5e-6; // 62.5 µV
     break;
   case 18:
     signBit = 0x20000;
     signExtend = 0xFFFC0000;
+    LSB = 15.625e-6; // 15.625 µV
     break;
   }
 
@@ -171,12 +177,15 @@ MCP342x::error_t MCP342x::read(long &result, Config& status) const
   if ((result & signBit) != 0)
     result |= signExtend; // Sign bit is set, sign-extend
 
+  // Convert output to voltage:
+  voltage = (result * (LSB/int(status.getGain())));
+    
   return errorNone;  
 }
 
 
 
-MCP342x::error_t MCP342x::convertAndRead(Channel channel, Mode mode, Resolution resolution, Gain gain, unsigned long timeout, long &result, Config &status)
+MCP342x::error_t MCP342x::convertAndRead(Channel channel, Mode mode, Resolution resolution, Gain gain, unsigned long timeout, double &voltage, Config &status)
 {
   error_t err = convert(channel, mode, resolution, gain);
   if (err != errorNone)
@@ -192,7 +201,7 @@ MCP342x::error_t MCP342x::convertAndRead(Channel channel, Mode mode, Resolution 
     delayMicroseconds(convTime);
 
   do {
-    err = read(result, status);
+    err = read(voltage, status);
     if (!err && status.isReady())
       return err;
     

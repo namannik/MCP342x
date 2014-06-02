@@ -4,6 +4,8 @@
 
 class MCP342x {
 public:
+  typedef unsigned char uint8_t;
+    
   class Config;
   class Channel;
   class Mode;
@@ -76,7 +78,8 @@ public:
    * one of gain1, gain2, gain4 or gain8.
    * @return Value indicating error (if any).
    */
-  error_t convert(Channel channel, Mode mode, Resolution resolution, Gain gain);  error_t convert(const Config &config) const;
+  error_t convert(Channel channel, Mode mode, Resolution resolution, Gain gain);
+  error_t convert(const Config &config) const;
   
 
   
@@ -85,8 +88,8 @@ public:
    * @param config The contents of the configuration register.
    * @return Value indicating error (if any).
    */
-  error_t read(long &result, uint8_t& config) const;
-  error_t read(long &result, Config& config) const;
+  error_t read(double &voltage, uint8_t& config) const;
+  error_t read(double &voltage, Config& config) const;
 
   /** Instruct the MCP342x device to begin a conversion and block
    * until read completes or timed out.
@@ -103,7 +106,7 @@ public:
    * @param config The contents of the configuration register.
    * @return Value indicating error (if any).
    */
-  error_t convertAndRead(Channel channel, Mode mode, Resolution resolution, Gain gain, unsigned long timeout, long &result, Config &status);
+  error_t convertAndRead(Channel channel, Mode mode, Resolution resolution, Gain gain, unsigned long timeout, double &voltage, Config &status);
 
 private:
   uint8_t address;
